@@ -942,12 +942,9 @@
     els.forEach(el => el.classList.add('in'));
   }
 
-  // Quote form.
-  // To go live: point this at the Heat Dragon backend's public enquiry route,
-  // e.g. 'https://ops.heatdragon.co.uk/api/enquiries' (see backend/README.md).
-  // While this is empty the form runs in preview mode — it shows the success
-  // panel without sending anything.
-  const FORM_ENDPOINT = '';
+  // Quote form → Supabase edge function (photos included). Emptying this
+  // string puts the form in preview mode: success panel, nothing sent.
+  const FORM_ENDPOINT = 'https://xmenqtixowwxmfwtfntr.supabase.co/functions/v1/enquiry';
 
   document.getElementById('quoteForm').addEventListener('submit', async (e) => {
     e.preventDefault();

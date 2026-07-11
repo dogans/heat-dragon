@@ -426,12 +426,14 @@
   <div class="toast" id="toast"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 /* ================================================================
-   CONFIG + STATE — data lives in the backend (see backend/README.md)
+   CONFIG + STATE — data lives in Supabase (Postgres + Storage + Auth)
 ================================================================ */
-const API = ''; // same origin: the backend serves this app. Set a full URL if hosted apart.
-let TOKEN = localStorage.getItem('hd_token') || '';
+const SUPABASE_URL = 'https://xmenqtixowwxmfwtfntr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZW5xdGl4b3d3eG1md3RmbnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NzMzOTgsImV4cCI6MjA5OTM0OTM5OH0.NrHrA831Iij8IW745jIgmU6g0TUKSicBTTBwjm9SBC4';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const S = {
   enquiries: [], waitlist: [], quoted: [], deposit: [], sched: [], bookings: [],
@@ -463,9 +465,9 @@ const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function dayLabel(d){ return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; }
 
-function fmtTs(sql){
-  if(!sql) return '';
-  const t = new Date(sql.includes('T') ? sql : sql.replace(' ','T') + 'Z');
+function fmtTs(ts){
+  if(!ts) return '';
+  const t = new Date(ts);
   if(isNaN(t)) return '';
   const days = Math.floor((startOfDay(new Date()) - startOfDay(t)) / 86400000);
   if(days <= 0) return t.toTimeString().slice(0,5);
@@ -520,48 +522,56 @@ function priorityDot(p){
 }
 
 /* ================================================================
-   API
+   DATA
 ================================================================ */
-async function api(path, opts = {}){
-  const res = await fetch(API + path, {
-    ...opts,
-    headers: {
-      'Authorization': 'Bearer ' + TOKEN,
-      ...(opts.body ? {'Content-Type': 'application/json'} : {}),
-      ...(opts.headers || {})
-    }
-  });
-  if(res.status === 401){ askToken(); throw new Error('unauthorised'); }
-  if(!res.ok){
-    const msg = (await res.json().catch(() => ({}))).error || ('HTTP ' + res.status);
-    toast('Hmm — ' + msg);
-    throw new Error(msg);
-  }
-  return res.json();
+function fail(error){
+  toast('Hmm — ' + (error.message || 'something went wrong'));
+  throw error;
 }
 
 async function loadState(){
-  const st = await api('/api/state');
-  Object.assign(S, st);
+  const [enq, bk] = await Promise.all([
+    sb.from('enquiries').select('*, photos(path)')
+      .not('status', 'in', '("declined","done")')
+      .order('id', { ascending: false }),
+    sb.from('bookings').select('*').order('date')
+  ]);
+  if(enq.error) fail(enq.error);
+  if(bk.error) fail(bk.error);
+  const rows = enq.data.map(e => ({ ...e, photos: (e.photos || []).map(p => p.path) }));
+  S.enquiries = rows.filter(e => e.status === 'new');
+  S.waitlist  = rows.filter(e => e.status === 'waitlist');
+  S.quoted    = rows.filter(e => e.status === 'quoted');
+  S.deposit   = rows.filter(e => e.status === 'deposit');
+  S.bookings  = bk.data;
+  S.sched     = rows.filter(e => e.status === 'scheduled')
+                    .map(e => ({ ...e, booking: bk.data.find(b => b.enquiry_id === e.id) || null }));
   $('conn').textContent = 'Live';
   renderAll();
 }
 
-function askToken(){
+function askLogin(){
   openSheetHTML(`
     <h3>Sign in</h3>
-    <p class="pcline">Enter the admin token — it's printed when the backend starts (or in backend/data/token.txt).</p>
-    <label for="tok">Admin token</label>
-    <input id="tok" type="password" autocomplete="current-password" value="${esc(TOKEN)}">
+    <p class="pcline">Staff access — your Heat Dragon login.</p>
+    <label for="li-email">Email</label>
+    <input id="li-email" type="email" autocomplete="username" inputmode="email">
+    <label for="li-pass" style="margin-top:12px">Password</label>
+    <input id="li-pass" type="password" autocomplete="current-password">
     <div class="actions">
-      <button class="btn blue" onclick="saveToken()">Open the desk →</button>
+      <button class="btn blue" onclick="doLogin()">Open the desk →</button>
     </div>`);
 }
-async function saveToken(){
-  TOKEN = ($('tok').value || '').trim();
-  localStorage.setItem('hd_token', TOKEN);
+
+async function doLogin(){
+  const { error } = await sb.auth.signInWithPassword({
+    email: ($('li-email').value || '').trim(),
+    password: $('li-pass').value || ''
+  });
+  if(error){ toast('Sign-in failed — check email and password'); return; }
   closeSheet();
-  try { await loadState(); toast('Connected ✓'); } catch {}
+  toast('Connected ✓');
+  loadState().catch(() => {});
 }
 
 /* ================================================================
@@ -823,12 +833,16 @@ function renderDiary(){
 /* ================================================================
    ACTIONS
 ================================================================ */
-function openEnquiry(id){
+async function openEnquiry(id){
   const e = S.enquiries.find(x => x.id === id);
   if(!e) return;
-  const photoImgs = e.photos.length
-    ? e.photos.map(f => `<a href="${API}/api/photos/${e.id}/${encodeURIComponent(f)}?t=${encodeURIComponent(TOKEN)}" target="_blank" rel="noopener"><img class="ph" src="${API}/api/photos/${e.id}/${encodeURIComponent(f)}?t=${encodeURIComponent(TOKEN)}" alt="Job photo"></a>`).join('')
-    : '<span class="dr-val" style="color:var(--muted)">No photos — worth asking for some before quoting.</span>';
+  let photoImgs = '<span class="dr-val" style="color:var(--muted)">No photos — worth asking for some before quoting.</span>';
+  if(e.photos.length){
+    const { data } = await sb.storage.from('photos').createSignedUrls(e.photos, 3600);
+    const urls = (data || []).map(x => x.signedUrl).filter(Boolean);
+    if(urls.length) photoImgs = urls.map(u =>
+      `<a href="${u}" target="_blank" rel="noopener"><img class="ph" src="${u}" alt="Job photo"></a>`).join('');
+  }
   openSheetHTML(`
     <h3>${esc(e.name)}</h3>
     <p class="pcline">${esc(e.postcode)} · ${esc(e.type)} · wants: ${esc(wshort(e))}</p>
@@ -874,7 +888,11 @@ async function sendQuote(id){
   const amt = ($('amt').value || '').replace(/^£\s*$/, '').trim();
   const est = ($('est-days').value || '').trim();
   if(!amt){ toast('Put a price in first'); return; }
-  await api(`/api/enquiries/${id}/quote`, { method:'POST', body: JSON.stringify({ amount: amt, est }) });
+  const { error } = await sb.from('enquiries').update({
+    status: 'quoted', quote_amount: amt, quote_est: est || null,
+    quote_sent_at: new Date().toISOString(), updated_at: new Date().toISOString()
+  }).eq('id', id);
+  if(error) return fail(error);
   await loadState();
   show('pipe');
   waFollowupSheet(`Quote saved — ${e.name}`, `${amt} · ${e.type}`, e.phone, TPL.quote(e, amt, est));
@@ -882,7 +900,10 @@ async function sendQuote(id){
 
 async function toWait(id){
   const e = S.enquiries.find(x => x.id === id);
-  await api(`/api/enquiries/${id}/waitlist`, { method:'POST', body: JSON.stringify({ note: 'From inbox — flexible timing' }) });
+  const { error } = await sb.from('enquiries').update({
+    status: 'waitlist', waitlist_note: 'From inbox — flexible timing', updated_at: new Date().toISOString()
+  }).eq('id', id);
+  if(error) return fail(error);
   await loadState();
   waFollowupSheet(`On the waitlist — ${e.name}`, 'A holding reply keeps the door open.', e.phone, TPL.waitlist(e));
 }
@@ -910,14 +931,20 @@ function passForm(id){
 
 async function doPass(id, why){
   const e = S.enquiries.find(x => x.id === id);
-  await api(`/api/enquiries/${id}/pass`, { method:'POST', body: JSON.stringify({ reason: why }) });
+  const { error } = await sb.from('enquiries').update({
+    status: 'declined', decline_reason: why, updated_at: new Date().toISOString()
+  }).eq('id', id);
+  if(error) return fail(error);
   await loadState();
   waFollowupSheet(`Passed — ${e.name}`, 'Door left open, bridge unburnt.', e.phone, TPL.pass[why](e));
 }
 
 async function markDeposit(id){
   const q = S.quoted.find(x => x.id === id);
-  await api(`/api/enquiries/${id}/deposit`, { method:'POST' });
+  const { error } = await sb.from('enquiries').update({
+    status: 'deposit', deposit_at: new Date().toISOString(), updated_at: new Date().toISOString()
+  }).eq('id', id);
+  if(error) return fail(error);
   await loadState();
   toast(`${q.name} — deposit in. Job needs a date.`);
 }
@@ -943,7 +970,17 @@ function openSlot(date, van, slot){
 
 async function placeAt(date, van, slot){
   const d = S.placing;
-  await api(`/api/enquiries/${d.id}/schedule`, { method:'POST', body: JSON.stringify({ date, van, slot }) });
+  const { error } = await sb.from('bookings').insert({
+    date, van, slot, label: `${d.type} — ${d.name}`, kind: 'job', enquiry_id: d.id
+  });
+  if(error){
+    toast(error.code === '23505' ? 'That slot is taken — pick a free one' : 'Could not book the slot');
+    return;
+  }
+  const { error: upErr } = await sb.from('enquiries').update({
+    status: 'scheduled', updated_at: new Date().toISOString()
+  }).eq('id', d.id);
+  if(upErr) return fail(upErr);
   S.placing = null;
   await loadState();
   const day = new Date(date + 'T00:00:00');
@@ -967,7 +1004,15 @@ function addSlotSheet(date, van, slot){
 async function addManualSlot(date, van, slot, isBuffer){
   const label = ($('slot-label').value || '').trim();
   if(!isBuffer && !label){ toast('Give the entry a name'); return; }
-  await api('/api/bookings', { method:'POST', body: JSON.stringify({ date, van, slot, label, kind: isBuffer ? 'buffer' : 'manual' }) });
+  const { error } = await sb.from('bookings').insert({
+    date, van, slot,
+    label: isBuffer ? 'Buffer — kept free' : label,
+    kind: isBuffer ? 'buffer' : 'manual'
+  });
+  if(error){
+    toast(error.code === '23505' ? 'That slot is taken' : 'Could not save');
+    return;
+  }
   closeSheet();
   await loadState();
   toast(isBuffer ? 'Buffer protected ✓' : 'Slot booked ✓');
@@ -987,7 +1032,12 @@ function removeSlotSheet(b){
 }
 
 async function removeBooking(id){
-  await api(`/api/bookings/${id}`, { method:'DELETE' });
+  const b = S.bookings.find(x => x.id === id);
+  const { error } = await sb.from('bookings').delete().eq('id', id);
+  if(error) return fail(error);
+  if(b && b.enquiry_id){
+    await sb.from('enquiries').update({ status: 'deposit', updated_at: new Date().toISOString() }).eq('id', b.enquiry_id);
+  }
   closeSheet();
   await loadState();
   toast('Slot freed');
@@ -1003,8 +1053,19 @@ function renderAll(){
 }
 
 renderAll(); // paint the empty shell first, then hydrate
-loadState().catch(() => { $('conn').textContent = 'Offline'; });
-setInterval(() => { if(TOKEN) loadState().catch(() => {}); }, 60000);
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if(session){
+    loadState().catch(() => { $('conn').textContent = 'Offline'; });
+  } else {
+    $('conn').textContent = 'Sign in';
+    askLogin();
+  }
+})();
+setInterval(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if(session) loadState().catch(() => {});
+}, 60000);
 </script>
 </body>
 </html>
