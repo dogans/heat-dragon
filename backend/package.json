@@ -1,0 +1,17 @@
+{
+  "name": "heat-dragon-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Heat Dragon ops backend: receives website enquiries, serves the ops app and its API.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "multer": "^2.0.1"
+  }
+}

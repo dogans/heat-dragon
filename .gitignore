@@ -1,0 +1,9 @@
+.DS_Store
+node_modules/
+backend/data/
+.env
+
+# internal notes and documents stay local — repo is public
+*.md
+docs/
+brand/

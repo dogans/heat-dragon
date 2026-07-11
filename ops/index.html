@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="HD Ops">
+<title>Heat Dragon Ops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAFBF9; --ink:#16262E; --muted:#5A6C74;
+    --flame:#0B6E8F; --flame-deep:#095B77; --flame-lt:#BFE3EE; --flame-bg:#EAF4F8;
+    --copper:#B4693C; --copper-lt:#F5EDE5;
+    --mist:#EDF3F1; --line:#DFE8E6;
+    --ok:#2E7D57; --ok-bg:#E8F5EE;
+    --warn:#B4483C; --warn-bg:#FAEEEC;
+    --disp:"Bricolage Grotesque",system-ui,sans-serif;
+    --body:"Instrument Sans",system-ui,sans-serif;
+    --mono:"Spline Sans Mono",ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:var(--body);background:var(--mist);color:var(--ink);
+    font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;
+    display:flex;justify-content:center;
+  }
+  .app{
+    width:100%;max-width:480px;background:var(--paper);
+    min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+    border-inline:1px solid var(--line);position:relative;
+  }
+
+  /* ---- header ---- */
+  .top{
+    display:flex;align-items:center;gap:10px;
+    padding:14px 16px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:rgba(250,251,249,.95);backdrop-filter:blur(10px);z-index:20;
+  }
+  .top svg.logo{width:36px;height:auto}
+  .top .t{font-family:var(--disp);font-weight:700;font-size:1.02rem;letter-spacing:-.01em}
+  .top .t small{display:block;font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+  .proto{
+    margin-left:auto;font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--copper);border:1px dashed var(--copper);
+    border-radius:999px;padding:4px 9px;
+  }
+
+  /* ---- views ---- */
+  main{flex:1;padding:16px 16px 96px;overflow-y:auto}
+  .view{display:none}
+  .view.on{display:block}
+  .vh{display:flex;align-items:baseline;justify-content:space-between;margin:6px 0 14px}
+  .vh h2{font-family:var(--disp);font-weight:700;font-size:1.35rem;letter-spacing:-.02em}
+  .vh span{font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.08em}
+
+  /* ---- dashboard summary ---- */
+  .dash{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  .dash-card{
+    background:#fff;border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;
+  }
+  .dash-card .d-label{font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dash-card .d-val{font-family:var(--disp);font-weight:700;font-size:1.6rem;letter-spacing:-.02em;line-height:1}
+  .dash-card .d-sub{font-size:.74rem;color:var(--muted);margin-top:3px}
+  .dash-card.highlight{background:var(--ink);border-color:var(--ink)}
+  .dash-card.highlight .d-label{color:rgba(255,255,255,.5)}
+  .dash-card.highlight .d-val{color:#fff}
+  .dash-card.highlight .d-sub{color:rgba(255,255,255,.45)}
+  .dash-card.ok{background:var(--ok-bg);border-color:#B8DFC9}
+  .dash-card.ok .d-val{color:var(--ok)}
+
+  /* ---- search / filter ---- */
+  .search-bar{
+    display:flex;align-items:center;gap:8px;
+    background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:9px 12px;margin-bottom:14px;
+  }
+  .search-bar svg{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .search-bar input{
+    flex:1;border:none;background:transparent;font-family:var(--body);font-size:.9rem;color:var(--ink);outline:none;
+  }
+  .search-bar input::placeholder{color:#9FAFB5}
+  .filter-pills{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:14px;padding-bottom:2px;scrollbar-width:none}
+  .filter-pills::-webkit-scrollbar{display:none}
+  .pill{
+    font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;
+    border:1px solid var(--line);border-radius:999px;padding:5px 11px;
+    background:#fff;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .12s;
+  }
+  .pill.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+  /* ---- cards ---- */
+  .card{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:10px;
+  }
+  .card.tap{cursor:pointer;transition:border-color .12s,transform .12s,box-shadow .12s}
+  .card.tap:active{transform:scale(.985);border-color:var(--flame)}
+  .card.tap:hover{border-color:var(--flame-lt);box-shadow:0 2px 12px rgba(11,110,143,.08)}
+  .card.urgent{border-left:3px solid var(--warn)}
+  .row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .who{font-weight:600;font-size:.98rem}
+  .pc{font-family:var(--mono);font-size:.7rem;color:var(--muted);letter-spacing:.04em}
+  .ts{margin-left:auto;font-family:var(--mono);font-size:.64rem;color:var(--muted)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .chip{
+    font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;
+    border:1px solid var(--line);border-radius:999px;padding:4px 9px;color:var(--ink);background:var(--paper);
+  }
+  .chip.hot{border-color:var(--warn);color:var(--warn);background:var(--warn-bg)}
+  .chip.blue{border-color:var(--flame);color:var(--flame);background:var(--flame-bg)}
+  .chip.ok{border-color:var(--ok);color:var(--ok);background:var(--ok-bg)}
+  .msg{color:var(--muted);font-size:.88rem;margin-top:9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .auto{
+    display:flex;gap:7px;align-items:flex-start;margin-top:10px;
+    font-size:.74rem;color:var(--flame-deep);background:var(--flame-bg);border-radius:8px;padding:7px 9px;
+  }
+  .auto b{font-weight:600}
+  .auto-icon{font-size:.9rem;flex:none}
+
+  /* priority indicator */
+  .priority-dot{
+    width:8px;height:8px;border-radius:50%;flex:none;
+    background:var(--line);
+  }
+  .priority-dot.high{background:var(--warn)}
+  .priority-dot.med{background:var(--copper)}
+  .priority-dot.low{background:var(--ok)}
+
+  /* pipeline */
+  .col{margin-bottom:22px}
+  .col-header{
+    font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  }
+  .col-header::before{content:"";width:20px;height:2px;background:var(--copper);flex:none}
+  .col-header .col-count{
+    margin-left:auto;background:var(--mist);border-radius:999px;
+    padding:2px 8px;font-size:.6rem;color:var(--ink);
+  }
+  .amount{font-family:var(--mono);font-size:.86rem;color:var(--ink);font-weight:500}
+  .cta-row{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+  .btn{
+    font-family:var(--body);font-weight:600;font-size:.82rem;
+    border-radius:999px;padding:9px 15px;cursor:pointer;border:1.5px solid var(--ink);
+    background:var(--ink);color:#fff;transition:opacity .12s,transform .12s;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .btn:active{opacity:.85;transform:scale(.97)}
+  a.btn{text-decoration:none;justify-content:center}
+  .wk-nav{display:inline-flex;align-items:center;gap:8px}
+  .wk-btn{
+    font-family:var(--mono);font-size:.9rem;line-height:1;color:var(--ink);
+    background:var(--mist);border:1px solid var(--line);border-radius:8px;
+    width:26px;height:26px;cursor:pointer;
+  }
+  .sheet .photos img.ph{
+    width:74px;height:74px;object-fit:cover;border-radius:10px;
+    border:1px solid var(--line);display:block;
+  }
+  .btn.line{background:transparent;color:var(--ink)}
+  .btn.blue{background:var(--flame);border-color:var(--flame)}
+  .btn.soft{background:var(--mist);border-color:var(--mist);color:var(--ink)}
+  .btn.ok{background:var(--ok);border-color:var(--ok)}
+  .btn.warn{background:var(--warn);border-color:var(--warn)}
+  .paid{color:var(--ok);font-family:var(--mono);font-size:.72rem;display:flex;align-items:center;gap:4px}
+
+  /* revenue line */
+  .rev-line{
+    background:linear-gradient(135deg,var(--ink) 0%,#1E3A47 100%);
+    border-radius:12px;padding:14px 16px;margin-bottom:18px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .rev-line .rl{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:2px}
+  .rev-line .rv{font-family:var(--disp);font-weight:700;font-size:1.4rem;color:#fff;letter-spacing:-.02em}
+  .rev-line .rv small{font-size:.75rem;color:rgba(255,255,255,.45);font-family:var(--mono);font-weight:400;margin-left:4px}
+
+  /* diary */
+  .place-banner{
+    background:var(--flame);color:#fff;border-radius:12px;padding:11px 13px;
+    font-size:.85rem;display:none;align-items:center;gap:10px;margin-bottom:14px;
+  }
+  .place-banner.on{display:flex}
+  .place-banner button{margin-left:auto;background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:999px;padding:6px 11px;font-size:.74rem;cursor:pointer}
+  .week-summary{
+    background:#fff;border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;margin-bottom:16px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .week-summary .ws-label{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .week-summary .ws-val{font-family:var(--disp);font-weight:700;font-size:1.2rem}
+  .week-summary .ws-detail{font-size:.78rem;color:var(--muted);margin-top:1px}
+  .day{margin-bottom:16px}
+  .day h4{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .day h4 .day-total{margin-left:auto;color:var(--copper);font-size:.62rem}
+  .slots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .van-lbl{font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+  .slot{
+    border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:52px;
+    background:#fff;font-size:.78rem;display:flex;flex-direction:column;justify-content:center;
+  }
+  .slot .l{font-family:var(--mono);font-size:.56rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .slot .j{font-weight:600;margin-top:2px;font-size:.8rem;line-height:1.25}
+  .slot.empty{background:var(--paper);color:var(--muted)}
+  .slot.empty .j{font-weight:400;font-style:normal;color:#9FAFB5}
+  .slot.buffer{border-style:dashed;border-color:var(--copper);background:var(--copper-lt)}
+  .slot.buffer .j{color:var(--copper);font-weight:500}
+  .placing .slot.empty{border-color:var(--flame);background:var(--flame-bg);cursor:pointer}
+  .placing .slot.empty:active{transform:scale(.97)}
+  .slot.new{border-color:var(--ok);background:var(--ok-bg)}
+  .slot.new .j{color:var(--ok)}
+
+  /* waitlist */
+  .sub{margin:26px 0 10px;font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .sub::before{content:"";width:20px;height:2px;background:var(--copper);flex:none}
+  .empty{
+    text-align:center;color:var(--muted);padding:40px 16px;font-size:.9rem;
+  }
+  .empty b{display:block;font-family:var(--disp);font-size:1.1rem;color:var(--ink);margin-bottom:4px}
+
+  /* ---- bottom nav ---- */
+  nav{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:480px;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);display:flex;z-index:30;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav button{
+    flex:1;background:none;border:none;padding:10px 4px 12px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    position:relative;transition:color .15s;
+  }
+  nav button.on{color:var(--flame)}
+  nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .badge{
+    position:absolute;top:6px;right:calc(50% - 20px);
+    background:var(--warn);color:#fff;font-size:.58rem;min-width:16px;height:16px;
+    border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px;
+    font-family:var(--mono);
+  }
+
+  /* ---- sheet ---- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(22,38,46,.45);z-index:40;display:none;
+    align-items:flex-end;justify-content:center;
+  }
+  .overlay.on{display:flex}
+  .sheet{
+    width:100%;max-width:480px;background:var(--paper);border-radius:20px 20px 0 0;
+    padding:20px 18px calc(24px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;
+  }
+  .sheet-handle{width:36px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 16px}
+  .sheet h3{font-family:var(--disp);font-weight:700;font-size:1.2rem;letter-spacing:-.01em}
+  .sheet .pcline{font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-top:2px;letter-spacing:.05em}
+  .sheet .body{margin-top:12px;font-size:.92rem;color:var(--ink);line-height:1.6}
+  .sheet .photos{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .sheet .photos i{
+    width:58px;height:58px;border-radius:8px;background:var(--mist);border:1px dashed #B9C6C4;
+    display:flex;align-items:center;justify-content:center;font-style:normal;font-size:1.1rem;color:var(--muted);
+  }
+  .sheet .actions{display:grid;gap:9px;margin-top:18px}
+  .sheet .actions .btn{width:100%;padding:13px;font-size:.9rem;justify-content:center}
+  .sheet label{font-size:.76rem;font-weight:600;display:block;margin:14px 0 6px;letter-spacing:.02em}
+  .sheet input{
+    width:100%;font-family:var(--mono);font-size:1.1rem;padding:12px;border-radius:10px;
+    border:1.5px solid var(--line);background:#fff;color:var(--ink);transition:border-color .15s;
+  }
+  .sheet input:focus{outline:none;border-color:var(--flame)}
+  .sheet .x{
+    float:right;margin-top:-4px;
+    background:var(--mist);border:none;border-radius:999px;width:32px;height:32px;
+    font-size:1rem;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;
+    transition:background .12s;
+  }
+  .sheet .x:hover{background:var(--line)}
+  .hint{font-size:.76rem;color:var(--muted);margin-top:10px;line-height:1.5}
+  .hint a{color:var(--flame);text-decoration:underline;text-underline-offset:2px}
+
+  /* detail row in sheet */
+  .detail-row{
+    display:flex;gap:8px;margin-top:12px;padding:10px 12px;
+    background:#fff;border:1px solid var(--line);border-radius:10px;
+  }
+  .detail-row .dr-label{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);min-width:64px}
+  .detail-row .dr-val{font-size:.88rem;font-weight:500}
+
+  /* pass options */
+  .pass-opts{display:grid;gap:8px;margin-top:14px}
+  .pass-opt{
+    background:#fff;border:1.5px solid var(--line);border-radius:10px;
+    padding:12px 14px;cursor:pointer;transition:border-color .12s;text-align:left;
+    font-family:var(--body);
+  }
+  .pass-opt:hover{border-color:var(--muted)}
+  .pass-opt strong{display:block;font-size:.88rem;font-weight:600;margin-bottom:2px}
+  .pass-opt span{font-size:.78rem;color:var(--muted)}
+
+  /* ---- toast ---- */
+  .toast{
+    position:fixed;bottom:86px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;font-size:.84rem;border-radius:999px;
+    padding:11px 18px;opacity:0;transition:.25s;z-index:50;pointer-events:none;
+    max-width:88%;text-align:center;white-space:nowrap;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---- section divider ---- */
+  .section-divider{
+    height:1px;background:var(--line);margin:18px 0;
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .toast,.card.tap,.btn{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="top">
+    <!-- Logo SVG -->
+    <svg class="logo" viewBox="0 0 150 138" aria-hidden="true">
+      <g transform="translate(0.000000,138.000000) scale(0.100000,-0.100000)" fill="#B4483C">
+        <path d="M621 1349 c-75 -15 -221 -70 -249 -94 -3 -2 28 -86 34 -94 2 -2 32 10 67 27 70 35 164 62 214 62 33 0 33 0 33 55 0 54 -1 55 -27 54 -16 -1 -48 -5 -72 -10z"/>
+        <path d="M276 1179 c-36 -33 -66 -66 -66 -72 0 -17 44 -77 55 -76 6 0 26 20 46 42 31 36 37 51 42 105 3 34 2 62 -3 62 -4 0 -37 -27 -74 -61z"/>
+        <path d="M101 963 c-119 -238 -101 -518 48 -729 71 -101 92 -118 148 -118 38 -1 48 3 51 17 5 26 -7 69 -17 62 -15 -9 -95 89 -134 163 -80 152 -90 351 -25 504 20 47 20 47 -7 102 -15 31 -29 56 -31 56 -2 0 -17 -26 -33 -57z"/>
+      </g>
+      <g transform="translate(0.000000,138.000000) scale(0.100000,-0.100000)" fill="#0B6E8F">
+        <path d="M780 1308 c0 -55 0 -55 58 -61 124 -14 282 -94 367 -188 110 -122 155 -233 162 -401 5 -107 3 -125 -20 -201 -15 -46 -44 -110 -65 -142 -49 -75 -150 -172 -219 -211 -44 -24 -53 -34 -53 -56 0 -27 2 -28 57 -28 72 0 126 33 223 137 198 212 246 527 120 786 -111 227 -326 380 -577 413 -53 7 -53 7 -53 -48z"/>
+      </g>
+      <g transform="translate(0.000000,138.000000) scale(0.100000,-0.100000)" fill="#16262E">
+        <path d="M384 1091 c8 -56 28 -93 78 -147 41 -44 41 -44 7 -38 -147 26 -224 72 -280 168 -31 51 -31 51 -25 1 15 -121 91 -210 210 -246 39 -12 85 -27 101 -33 29 -10 29 -11 -27 -18 -61 -8 -125 -35 -149 -64 -13 -15 -12 -16 9 -9 13 4 40 4 60 0 36 -7 36 -7 -4 -24 -38 -18 -124 -101 -124 -121 0 -13 2 -13 36 5 16 8 40 15 53 15 24 0 24 0 -2 -20 -36 -28 -77 -116 -77 -164 0 -41 0 -41 25 -4 22 33 65 68 65 54 0 -3 -9 -28 -20 -56 -22 -56 -26 -134 -9 -177 11 -28 11 -28 24 12 10 34 13 37 19 20 4 -11 12 -30 17 -43 23 -58 0 -122 -45 -122 -27 0 -8 -20 38 -41 37 -17 69 -19 330 -19 288 0 288 0 281 38 -11 59 -41 98 -124 157 -92 67 -116 101 -107 156 5 29 3 39 -8 39 -23 0 -63 38 -75 70 -10 31 -10 31 22 -4 48 -51 100 -63 181 -42 126 31 228 15 242 -39 8 -33 26 -31 68 6 44 38 53 65 30 90 -16 17 -19 18 -34 4 -16 -14 -18 -14 -23 5 -4 15 -13 20 -36 20 -17 0 -53 9 -81 20 -28 11 -72 20 -98 21 -47 1 -47 1 -14 12 27 8 49 6 110 -11 42 -11 97 -23 121 -27 24 -3 56 -15 71 -25 25 -18 29 -18 34 -4 21 53 -4 145 -48 179 -38 29 -46 31 -46 10 0 -21 -27 -18 -86 9 -38 18 -54 32 -62 54 -11 31 -43 53 -97 66 -16 4 -51 28 -77 52 -47 44 -101 74 -134 74 -12 0 -10 -6 10 -31 14 -17 26 -35 26 -39 0 -16 -28 0 -44 25 -10 15 -42 32 -94 49 -85 29 -143 70 -195 140 -30 41 -30 41 -23 -3z m546 -350 c25 -16 25 -16 -3 -19 -28 -3 -67 20 -67 40 0 12 38 1 70 -21z m270 -106 c20 -24 6 -28 -15 -5 -10 11 -13 20 -8 20 6 0 16 -7 23 -15z"/>
+      </g>
+    </svg>
+    <div class="t">Heat Dragon<small>Ops · demand desk</small></div>
+    <span class="proto" id="conn">Connecting…</span>
+  </div>
+
+  <main>
+
+    <!-- INBOX VIEW -->
+    <div class="view on" id="view-inbox">
+      <div class="vh"><h2>Inbox</h2><span id="inbox-count"></span></div>
+
+      <!-- Dashboard summary -->
+      <div class="dash" id="dash-cards"></div>
+
+      <!-- Search -->
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="inbox-search" placeholder="Search by name, postcode or job type…" oninput="filterInbox()">
+      </div>
+
+      <!-- Filter pills -->
+      <div class="filter-pills" id="filter-pills">
+        <button class="pill on" data-filter="all" onclick="setFilter('all',this)">All</button>
+        <button class="pill" data-filter="ASAP" onclick="setFilter('ASAP',this)">ASAP</button>
+        <button class="pill" data-filter="Boiler installation" onclick="setFilter('Boiler installation',this)">Boilers</button>
+        <button class="pill" data-filter="Bathroom renovation" onclick="setFilter('Bathroom renovation',this)">Bathrooms</button>
+        <button class="pill" data-filter="Leak or repair" onclick="setFilter('Leak or repair',this)">Leaks</button>
+        <button class="pill" data-filter="Extension or garden office" onclick="setFilter('Extension or garden office',this)">Builds</button>
+      </div>
+
+      <div id="inbox-list"></div>
+      <div class="sub">Waitlist</div>
+      <div id="wait-list"></div>
+    </div>
+
+    <!-- PIPELINE VIEW -->
+    <div class="view" id="view-pipe">
+      <div class="vh"><h2>Pipeline</h2><span id="pipe-count"></span></div>
+
+      <!-- Revenue summary -->
+      <div class="rev-line" id="rev-line"></div>
+
+      <div class="col">
+        <div class="col-header">Quoted — awaiting customer<span class="col-count" id="cnt-quoted"></span></div>
+        <div id="col-quoted"></div>
+      </div>
+      <div class="col">
+        <div class="col-header">Deposit paid — needs a date<span class="col-count" id="cnt-deposit"></span></div>
+        <div id="col-deposit"></div>
+      </div>
+      <div class="col">
+        <div class="col-header">Scheduled<span class="col-count" id="cnt-sched"></span></div>
+        <div id="col-sched"></div>
+      </div>
+    </div>
+
+    <!-- DIARY VIEW -->
+    <div class="view" id="view-diary">
+      <div class="vh"><h2>Diary</h2><span class="wk-nav"><button class="wk-btn" onclick="moveWeek(-1)" aria-label="Previous week">‹</button><span id="wk-label"></span><button class="wk-btn" onclick="moveWeek(1)" aria-label="Next week">›</button></span></div>
+      <div class="place-banner" id="place-banner">
+        <span id="place-text"></span>
+        <button onclick="cancelPlace()">Cancel</button>
+      </div>
+      <div class="week-summary" id="week-summary"></div>
+      <div id="diary"></div>
+    </div>
+
+  </main>
+
+  <nav>
+    <button class="on" id="nav-inbox" onclick="show('inbox')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h4l2 3h6l2-3h4M5 6h14l2 7v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5l2-7z"/></svg>
+      Inbox<span class="badge" id="nav-badge" style="display:none"></span>
+    </button>
+    <button id="nav-pipe" onclick="show('pipe')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v10M12 4v16M19 4v6"/><circle cx="5" cy="17" r="2"/><circle cx="19" cy="13" r="2"/></svg>
+      Pipeline
+    </button>
+    <button id="nav-diary" onclick="show('diary')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+      Diary
+    </button>
+  </nav>
+
+  <div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ================================================================
+   CONFIG + STATE — data lives in the backend (see backend/README.md)
+================================================================ */
+const API = ''; // same origin: the backend serves this app. Set a full URL if hosted apart.
+let TOKEN = localStorage.getItem('hd_token') || '';
+
+const S = {
+  enquiries: [], waitlist: [], quoted: [], deposit: [], sched: [], bookings: [],
+  placing: null,
+  weekStart: startOfWeek(new Date())
+};
+
+/* ================================================================
+   HELPERS
+================================================================ */
+const $ = id => document.getElementById(id);
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function startOfWeek(d){
+  const x = new Date(d);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  x.setHours(0,0,0,0);
+  return x;
+}
+function isoDate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function weekDays(){
+  return [0,1,2,3,4].map(i => { const d = new Date(S.weekStart); d.setDate(d.getDate()+i); return d; });
+}
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dayLabel(d){ return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; }
+
+function fmtTs(sql){
+  if(!sql) return '';
+  const t = new Date(sql.includes('T') ? sql : sql.replace(' ','T') + 'Z');
+  if(isNaN(t)) return '';
+  const days = Math.floor((startOfDay(new Date()) - startOfDay(t)) / 86400000);
+  if(days <= 0) return t.toTimeString().slice(0,5);
+  if(days === 1) return 'Yesterday';
+  if(days < 7) return DAY_NAMES[t.getDay()];
+  return `${t.getDate()} ${MONTHS[t.getMonth()]}`;
+}
+function startOfDay(d){ const x = new Date(d); x.setHours(0,0,0,0); return x; }
+
+function wshort(e){
+  const w = e.when_needed || '';
+  return w.startsWith('As soon') ? 'ASAP' : w;
+}
+function priorityOf(e){
+  const w = wshort(e);
+  return w === 'ASAP' ? 'high' : w === 'Within a month' ? 'med' : 'low';
+}
+function firstName(n){ return (n || '').split(' ')[0]; }
+
+function waLink(phone, text){
+  let digits = String(phone || '').replace(/\D/g, '');
+  if(digits.startsWith('0')) digits = '44' + digits.slice(1);
+  return `https://wa.me/${digits}${text ? '?text=' + encodeURIComponent(text) : ''}`;
+}
+
+function toast(t, dur=2800){
+  const el = $('toast');
+  el.textContent = t;
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), dur);
+}
+
+function show(v){
+  ['inbox','pipe','diary'].forEach(k => {
+    $('view-'+k).classList.toggle('on', k===v);
+    $('nav-'+k).classList.toggle('on', k===v);
+  });
+  window.scrollTo(0,0);
+}
+
+function closeSheet(){ $('overlay').classList.remove('on'); }
+function openSheetHTML(html){
+  $('sheet').innerHTML = `<div class="sheet-handle"></div>
+    <button class="x" onclick="closeSheet()" aria-label="Close">✕</button>` + html;
+  $('overlay').classList.add('on');
+}
+$('overlay').addEventListener('click', e => { if(e.target === $('overlay')) closeSheet(); });
+
+function priorityDot(p){
+  return `<span class="priority-dot ${p||'low'}" title="Priority: ${p||'low'}"></span>`;
+}
+
+/* ================================================================
+   API
+================================================================ */
+async function api(path, opts = {}){
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: {
+      'Authorization': 'Bearer ' + TOKEN,
+      ...(opts.body ? {'Content-Type': 'application/json'} : {}),
+      ...(opts.headers || {})
+    }
+  });
+  if(res.status === 401){ askToken(); throw new Error('unauthorised'); }
+  if(!res.ok){
+    const msg = (await res.json().catch(() => ({}))).error || ('HTTP ' + res.status);
+    toast('Hmm — ' + msg);
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+async function loadState(){
+  const st = await api('/api/state');
+  Object.assign(S, st);
+  $('conn').textContent = 'Live';
+  renderAll();
+}
+
+function askToken(){
+  openSheetHTML(`
+    <h3>Sign in</h3>
+    <p class="pcline">Enter the admin token — it's printed when the backend starts (or in backend/data/token.txt).</p>
+    <label for="tok">Admin token</label>
+    <input id="tok" type="password" autocomplete="current-password" value="${esc(TOKEN)}">
+    <div class="actions">
+      <button class="btn blue" onclick="saveToken()">Open the desk →</button>
+    </div>`);
+}
+async function saveToken(){
+  TOKEN = ($('tok').value || '').trim();
+  localStorage.setItem('hd_token', TOKEN);
+  closeSheet();
+  try { await loadState(); toast('Connected ✓'); } catch {}
+}
+
+/* ================================================================
+   WHATSAPP TEMPLATES (playbook T3–T6)
+================================================================ */
+const TPL = {
+  quote: (e, amount, est) =>
+`Hi ${firstName(e.name)}, here's your fixed quote for ${e.type.toLowerCase()}:
+
+${amount} — includes materials and labour${est ? `, estimated ${est}` : ''}. No extras unless we agree them first.
+
+The quote is valid for 14 days. To secure a date in the diary, you can pay the deposit by card here: [payment link]
+
+Any questions, just ask. — Heat Dragon`,
+  booked: (e, when) =>
+`Thanks ${firstName(e.name)}, deposit received ✓ You're booked in for ${when}. I'll message the day before to confirm. If anything changes on my side you'll hear from me straight away — that's a promise. — Heat Dragon`,
+  waitlist: e =>
+`Hi ${firstName(e.name)}, thanks for getting in touch. Being straight with you — the diary is full at the moment. Since your job isn't urgent, I've added you to the list and I'll call you first when a slot opens up (it happens more often than you'd think). — Heat Dragon`,
+  pass: {
+    distance: e => `Hi ${firstName(e.name)}, thanks for thinking of us. ${e.postcode} is outside the area we can look after properly, so rather than keep you waiting I'll be honest now. All the best with it. — Heat Dragon`,
+    fit: e => `Hi ${firstName(e.name)}, thanks for thinking of us. This one isn't a good fit for what we do best, so rather than keep you waiting I'll be honest now — a local specialist will serve you better. All the best with it. — Heat Dragon`,
+    time: e => `Hi ${firstName(e.name)}, thanks for getting in touch. Being straight with you — we're fully booked for the window you need. If the timing ever loosens up, message me and I'll see what we can do. — Heat Dragon`
+  },
+  nudge: q =>
+`Hi ${firstName(q.name)}, just checking you got the quote for the ${q.type.toLowerCase()} (${q.quote_amount}). Happy to answer any questions — and if you'd like the date held, the deposit link does that. — Heat Dragon`
+};
+
+function waFollowupSheet(title, sub, phone, text){
+  openSheetHTML(`
+    <h3>${esc(title)}</h3>
+    <p class="pcline">${esc(sub)}</p>
+    <div class="actions">
+      <a class="btn blue" href="${waLink(phone, text)}" target="_blank" rel="noopener" onclick="closeSheet()">Send it on WhatsApp →</a>
+      <button class="btn line" onclick="closeSheet()">Done</button>
+    </div>
+    <p class="hint">The message opens pre-written in WhatsApp — read it, tweak it, send it. Nothing goes out by itself.</p>`);
+}
+
+/* ================================================================
+   FILTER / SEARCH
+================================================================ */
+let activeFilter = 'all';
+
+function setFilter(f, btn){
+  activeFilter = f;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  btn.classList.add('on');
+  renderInbox();
+}
+function filterInbox(){ renderInbox(); }
+
+function getFilteredEnquiries(){
+  const q = ($('inbox-search')||{value:''}).value.toLowerCase();
+  return S.enquiries.filter(e => {
+    const matchFilter = activeFilter === 'all' || e.type === activeFilter || wshort(e) === activeFilter;
+    const matchSearch = !q || e.name.toLowerCase().includes(q) || e.postcode.toLowerCase().includes(q) || e.type.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+}
+
+/* ================================================================
+   DIARY DATA
+================================================================ */
+function weekBookings(){
+  const days = weekDays().map(isoDate);
+  return S.bookings.filter(b => days.includes(b.date));
+}
+function bookingAt(date, van, slot){
+  return S.bookings.find(b => b.date === date && b.van === van && b.slot === slot);
+}
+function countFilledSlots(){
+  return weekBookings().filter(b => b.kind !== 'buffer').length;
+}
+function moveWeek(dir){
+  S.weekStart.setDate(S.weekStart.getDate() + dir * 7);
+  renderDiary();
+}
+
+/* ================================================================
+   RENDERS
+================================================================ */
+function pipelineValue(){
+  const all = [...S.quoted, ...S.deposit, ...S.sched];
+  let total = 0;
+  all.forEach(item => {
+    const m = (item.quote_amount||'').replace(/[^0-9]/g,'');
+    if(m) total += parseInt(m);
+  });
+  return total;
+}
+
+function renderDashCards(){
+  const pv = pipelineValue();
+  $('dash-cards').innerHTML = `
+    <div class="dash-card highlight">
+      <div class="d-label">Pipeline value</div>
+      <div class="d-val">£${(pv/1000).toFixed(1)}k</div>
+      <div class="d-sub">${S.quoted.length + S.deposit.length} jobs in play</div>
+    </div>
+    <div class="dash-card ok">
+      <div class="d-label">New enquiries</div>
+      <div class="d-val">${S.enquiries.length}</div>
+      <div class="d-sub">Awaiting triage</div>
+    </div>
+    <div class="dash-card">
+      <div class="d-label">This week</div>
+      <div class="d-val">${countFilledSlots()}</div>
+      <div class="d-sub">Slots filled of 20</div>
+    </div>
+    <div class="dash-card">
+      <div class="d-label">Waitlist</div>
+      <div class="d-val">${S.waitlist.length}</div>
+      <div class="d-sub">Holding for slots</div>
+    </div>`;
+}
+
+function renderInbox(){
+  renderDashCards();
+  const filtered = getFilteredEnquiries();
+  const L = $('inbox-list');
+
+  if(!S.enquiries.length){
+    L.innerHTML = '<div class="empty"><b>Inbox zero.</b>New enquiries from the website land here.</div>';
+  } else if(!filtered.length){
+    L.innerHTML = '<div class="empty"><b>No matches.</b>Try a different filter or search term.</div>';
+  } else {
+    L.innerHTML = filtered.map(e => `
+      <div class="card tap ${wshort(e)==='ASAP'?'urgent':''}" onclick="openEnquiry(${e.id})">
+        <div class="row1">
+          ${priorityDot(priorityOf(e))}
+          <span class="who">${esc(e.name)}</span>
+          <span class="pc">${esc(e.postcode)}</span>
+          <span class="ts">${fmtTs(e.created_at)}</span>
+        </div>
+        <div class="chips">
+          <span class="chip blue">${esc(e.type)}</span>
+          <span class="chip ${wshort(e)==='ASAP'?'hot':''}">${esc(wshort(e))}</span>
+          <span class="chip">${e.photos.length} photo${e.photos.length!==1?'s':''}</span>
+        </div>
+        <p class="msg">${esc(e.message)}</p>
+      </div>`).join('');
+  }
+
+  $('inbox-count').textContent = S.enquiries.length + ' new';
+  const b = $('nav-badge');
+  b.textContent = S.enquiries.length;
+  b.style.display = S.enquiries.length ? 'flex' : 'none';
+
+  $('wait-list').innerHTML = S.waitlist.length ? S.waitlist.map(w => `
+    <div class="card">
+      <div class="row1"><span class="who">${esc(w.name)}</span><span class="pc">${esc(w.postcode)}</span>
+        <a class="ts" href="${waLink(w.phone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">WhatsApp ↗</a></div>
+      <p class="msg" style="margin-top:6px">${esc(w.type)}${w.waitlist_note ? ' · ' + esc(w.waitlist_note) : ''}</p>
+    </div>`).join('') : '<div class="empty">Nobody waiting.</div>';
+}
+
+function renderPipe(){
+  const pv = pipelineValue();
+  $('rev-line').innerHTML = `
+    <div>
+      <div class="rl">Pipeline value</div>
+      <div class="rv">£${pv.toLocaleString()}<small>excl. VAT</small></div>
+    </div>
+    <div style="text-align:right">
+      <div class="rl">Confirmed (deposit)</div>
+      <div class="rv" style="font-size:1.1rem">£${S.deposit.reduce((a,d)=>{const m=(d.quote_amount||'').replace(/[^0-9]/g,'');return a+(m?parseInt(m):0)},0).toLocaleString()}</div>
+    </div>`;
+
+  $('col-quoted').innerHTML = S.quoted.length ? S.quoted.map(q => `
+    <div class="card">
+      <div class="row1"><span class="who">${esc(q.name)}</span><span class="ts">${fmtTs(q.quote_sent_at)}</span></div>
+      <p class="msg" style="margin-top:4px">${esc(q.type)} · ${esc(q.postcode)}</p>
+      <div class="chips">
+        <span class="chip blue amount">${esc(q.quote_amount)}</span>
+        ${q.quote_est ? `<span class="chip">${esc(q.quote_est)}</span>` : ''}
+      </div>
+      <div class="cta-row">
+        <a class="btn soft" href="${waLink(q.phone, TPL.nudge(q))}" target="_blank" rel="noopener">Nudge</a>
+        <button class="btn blue" onclick="markDeposit(${q.id})">Mark deposit paid ✓</button>
+      </div>
+    </div>`).join('') : '<div class="empty">No open quotes.</div>';
+
+  $('col-deposit').innerHTML = S.deposit.length ? S.deposit.map(d => `
+    <div class="card">
+      <div class="row1"><span class="who">${esc(d.name)}</span><span class="paid">✓ deposit paid</span></div>
+      <p class="msg" style="margin-top:4px">${esc(d.type)} · ${esc(d.postcode)}</p>
+      <div class="chips">
+        <span class="chip blue amount">${esc(d.quote_amount)}</span>
+        ${d.quote_est ? `<span class="chip">${esc(d.quote_est)}</span>` : ''}
+      </div>
+      <div class="cta-row"><button class="btn" onclick="startPlace(${d.id})">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Pick a slot
+      </button></div>
+    </div>`).join('') : '<div class="empty">Nothing waiting for a date.</div>';
+
+  $('col-sched').innerHTML = S.sched.length ? S.sched.map(s => `
+    <div class="card">
+      <div class="row1"><span class="who">${esc(s.name)}</span>${s.quote_amount?`<span class="chip ok" style="margin-left:auto">${esc(s.quote_amount)}</span>`:''}</div>
+      <p class="msg" style="margin-top:4px">${esc(s.type)}</p>
+      <div class="chips"><span class="chip">${s.booking ? esc(`${s.booking.date} ${s.booking.slot} · Van ${s.booking.van}`) : '—'}</span></div>
+    </div>`).join('') : '<div class="empty">Nothing scheduled yet.</div>';
+
+  $('pipe-count').textContent = (S.quoted.length + S.deposit.length) + ' in play';
+  $('cnt-quoted').textContent = S.quoted.length;
+  $('cnt-deposit').textContent = S.deposit.length;
+  $('cnt-sched').textContent = S.sched.length;
+}
+
+function renderDiary(){
+  const D = $('diary');
+  D.classList.toggle('placing', !!S.placing);
+
+  const days = weekDays();
+  $('wk-label').textContent = `Wk of ${days[0].getDate()} ${MONTHS[days[0].getMonth()]}`;
+
+  const filled = countFilledSlots();
+  const total = 20; // 5 days × 2 vans × 2 slots
+  $('week-summary').innerHTML = `
+    <div>
+      <div class="ws-label">This week</div>
+      <div class="ws-val">${filled} / ${total} slots</div>
+      <div class="ws-detail">${total - filled} free · ${weekBookings().filter(b=>b.kind==='buffer').length} buffer</div>
+    </div>
+    <div style="text-align:right">
+      <div class="ws-label">Utilisation</div>
+      <div class="ws-val" style="color:${filled/total > 0.7 ? 'var(--ok)' : 'var(--copper)'}">${Math.round(filled/total*100)}%</div>
+      <div class="ws-detail">${filled/total > 0.7 ? 'Good capacity' : 'Room available'}</div>
+    </div>`;
+
+  D.innerHTML = days.map(d => {
+    const date = isoDate(d);
+    const dayFilled = [1,2].flatMap(v => ['AM','PM'].map(t => bookingAt(date, v, t))).filter(b => b && b.kind !== 'buffer').length;
+    return `
+    <div class="day">
+      <h4>${dayLabel(d)}<span class="day-total">${dayFilled}/4 slots</span></h4>
+      <div class="slots">
+        ${[1,2].map(v => `
+          <div>
+            <div class="van-lbl">Van ${v}</div>
+            ${['AM','PM'].map(t => {
+              const b = bookingAt(date, v, t);
+              if(b) return `<div class="slot ${b.kind==='buffer'?'buffer':b.kind==='job'?'new':''}" style="margin-bottom:8px" onclick="openSlot('${date}',${v},'${t}')"><span class="l">${t}</span><span class="j">${esc(b.label)}</span></div>`;
+              return `<div class="slot empty" style="margin-bottom:8px" onclick="openSlot('${date}',${v},'${t}')"><span class="l">${t}</span><span class="j">Free</span></div>`;
+            }).join('')}
+          </div>`).join('')}
+      </div>
+    </div>`}).join('');
+
+  const pb = $('place-banner');
+  if(S.placing){
+    pb.classList.add('on');
+    $('place-text').textContent = `Pick a free slot for ${S.placing.name} — ${S.placing.type}`;
+  } else {
+    pb.classList.remove('on');
+  }
+}
+
+/* ================================================================
+   ACTIONS
+================================================================ */
+function openEnquiry(id){
+  const e = S.enquiries.find(x => x.id === id);
+  if(!e) return;
+  const photoImgs = e.photos.length
+    ? e.photos.map(f => `<a href="${API}/api/photos/${e.id}/${encodeURIComponent(f)}?t=${encodeURIComponent(TOKEN)}" target="_blank" rel="noopener"><img class="ph" src="${API}/api/photos/${e.id}/${encodeURIComponent(f)}?t=${encodeURIComponent(TOKEN)}" alt="Job photo"></a>`).join('')
+    : '<span class="dr-val" style="color:var(--muted)">No photos — worth asking for some before quoting.</span>';
+  openSheetHTML(`
+    <h3>${esc(e.name)}</h3>
+    <p class="pcline">${esc(e.postcode)} · ${esc(e.type)} · wants: ${esc(wshort(e))}</p>
+    <div class="detail-row"><span class="dr-label">Contact</span><span class="dr-val">
+      <a href="tel:${esc(e.phone)}">${esc(e.phone)}</a> ·
+      <a href="${waLink(e.phone)}" target="_blank" rel="noopener">WhatsApp</a>${e.email ? ` · <a href="mailto:${esc(e.email)}">email</a>` : ''}
+    </span></div>
+    <div class="detail-row"><span class="dr-label">Message</span><span class="dr-val">${esc(e.message) || '—'}</span></div>
+    <div class="photos">${photoImgs}</div>
+    <div class="actions">
+      <button class="btn blue" onclick="quoteForm(${e.id})">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Quote it
+      </button>
+      <button class="btn line" onclick="toWait(${e.id})">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Add to waitlist
+      </button>
+      <button class="btn line" onclick="passForm(${e.id})" style="border-color:#C9D6D4;color:var(--muted)">
+        Pass politely
+      </button>
+    </div>
+    <p class="hint">Photos + postcode mean most jobs get a fixed price without a site visit.</p>`);
+}
+
+function quoteForm(id){
+  const e = S.enquiries.find(x => x.id === id);
+  openSheetHTML(`
+    <h3>Quote — ${esc(e.name)}</h3>
+    <p class="pcline">${esc(e.type)} · ${esc(e.postcode)}</p>
+    <label for="amt">Fixed price (inc. parts &amp; labour)</label>
+    <input id="amt" inputmode="decimal" placeholder="£ 0.00" value="£ ">
+    <label for="est-days" style="margin-top:12px">Estimated duration</label>
+    <input id="est-days" placeholder="e.g. 1 day, half day, 3 days">
+    <div class="actions">
+      <button class="btn blue" onclick="sendQuote(${e.id})">Save quote →</button>
+    </div>
+    <p class="hint">Saving moves the job to the pipeline, then opens the quote pre-written in WhatsApp with a space for the deposit link.</p>`);
+}
+
+async function sendQuote(id){
+  const e = S.enquiries.find(x => x.id === id);
+  const amt = ($('amt').value || '').replace(/^£\s*$/, '').trim();
+  const est = ($('est-days').value || '').trim();
+  if(!amt){ toast('Put a price in first'); return; }
+  await api(`/api/enquiries/${id}/quote`, { method:'POST', body: JSON.stringify({ amount: amt, est }) });
+  await loadState();
+  show('pipe');
+  waFollowupSheet(`Quote saved — ${e.name}`, `${amt} · ${e.type}`, e.phone, TPL.quote(e, amt, est));
+}
+
+async function toWait(id){
+  const e = S.enquiries.find(x => x.id === id);
+  await api(`/api/enquiries/${id}/waitlist`, { method:'POST', body: JSON.stringify({ note: 'From inbox — flexible timing' }) });
+  await loadState();
+  waFollowupSheet(`On the waitlist — ${e.name}`, 'A holding reply keeps the door open.', e.phone, TPL.waitlist(e));
+}
+
+function passForm(id){
+  const e = S.enquiries.find(x => x.id === id);
+  openSheetHTML(`
+    <h3>Pass — ${esc(e.name)}</h3>
+    <p class="pcline">Pick a reason. A polite template opens in WhatsApp.</p>
+    <div class="pass-opts">
+      <button class="pass-opt" onclick="doPass(${e.id},'distance')">
+        <strong>Too far out</strong>
+        <span>Outside our current service area.</span>
+      </button>
+      <button class="pass-opt" onclick="doPass(${e.id},'fit')">
+        <strong>Not our kind of job</strong>
+        <span>Outside our specialisms — point them to the right trade.</span>
+      </button>
+      <button class="pass-opt" onclick="doPass(${e.id},'time')">
+        <strong>Can't meet the timeline</strong>
+        <span>Fully booked for their window.</span>
+      </button>
+    </div>`);
+}
+
+async function doPass(id, why){
+  const e = S.enquiries.find(x => x.id === id);
+  await api(`/api/enquiries/${id}/pass`, { method:'POST', body: JSON.stringify({ reason: why }) });
+  await loadState();
+  waFollowupSheet(`Passed — ${e.name}`, 'Door left open, bridge unburnt.', e.phone, TPL.pass[why](e));
+}
+
+async function markDeposit(id){
+  const q = S.quoted.find(x => x.id === id);
+  await api(`/api/enquiries/${id}/deposit`, { method:'POST' });
+  await loadState();
+  toast(`${q.name} — deposit in. Job needs a date.`);
+}
+
+function startPlace(id){
+  S.placing = S.deposit.find(x => x.id === id);
+  renderDiary();
+  show('diary');
+}
+
+function cancelPlace(){
+  S.placing = null;
+  renderDiary();
+}
+
+function openSlot(date, van, slot){
+  const b = bookingAt(date, van, slot);
+  if(S.placing && !b){ placeAt(date, van, slot); return; }
+  if(S.placing) { toast('That slot is taken — pick a free one'); return; }
+  if(b) removeSlotSheet(b);
+  else addSlotSheet(date, van, slot);
+}
+
+async function placeAt(date, van, slot){
+  const d = S.placing;
+  await api(`/api/enquiries/${d.id}/schedule`, { method:'POST', body: JSON.stringify({ date, van, slot }) });
+  S.placing = null;
+  await loadState();
+  const day = new Date(date + 'T00:00:00');
+  const when = `${dayLabel(day)}, ${slot} (Van ${van})`;
+  waFollowupSheet(`Booked — ${d.name}`, `${when} · ${d.type}`, d.phone, TPL.booked(d, when));
+}
+
+function addSlotSheet(date, van, slot){
+  const day = new Date(date + 'T00:00:00');
+  openSheetHTML(`
+    <h3>${dayLabel(day)} · ${slot} · Van ${van}</h3>
+    <p class="pcline">Block this slot by hand — a service, a revisit, or protected buffer.</p>
+    <label for="slot-label">What's it for?</label>
+    <input id="slot-label" placeholder="e.g. Boiler service — SW4">
+    <div class="actions">
+      <button class="btn blue" onclick="addManualSlot('${date}',${van},'${slot}',false)">Add entry</button>
+      <button class="btn line" onclick="addManualSlot('${date}',${van},'${slot}',true)">Mark as buffer — kept free</button>
+    </div>`);
+}
+
+async function addManualSlot(date, van, slot, isBuffer){
+  const label = ($('slot-label').value || '').trim();
+  if(!isBuffer && !label){ toast('Give the entry a name'); return; }
+  await api('/api/bookings', { method:'POST', body: JSON.stringify({ date, van, slot, label, kind: isBuffer ? 'buffer' : 'manual' }) });
+  closeSheet();
+  await loadState();
+  toast(isBuffer ? 'Buffer protected ✓' : 'Slot booked ✓');
+}
+
+function removeSlotSheet(b){
+  openSheetHTML(`
+    <h3>${esc(b.label)}</h3>
+    <p class="pcline">${b.date} · ${b.slot} · Van ${b.van}</p>
+    <div class="actions">
+      <button class="btn line" style="border-color:var(--warn);color:var(--warn)" onclick="removeBooking(${b.id})">
+        ${b.kind === 'job' ? 'Unbook — back to "needs a date"' : 'Free this slot'}
+      </button>
+      <button class="btn line" onclick="closeSheet()">Keep it</button>
+    </div>
+    ${b.kind === 'job' ? '<p class="hint">The customer keeps their deposit status — the job just returns to the pipeline for a new date. Let them know on WhatsApp.</p>' : ''}`);
+}
+
+async function removeBooking(id){
+  await api(`/api/bookings/${id}`, { method:'DELETE' });
+  closeSheet();
+  await loadState();
+  toast('Slot freed');
+}
+
+/* ================================================================
+   BOOT
+================================================================ */
+function renderAll(){
+  renderInbox();
+  renderPipe();
+  renderDiary();
+}
+
+renderAll(); // paint the empty shell first, then hydrate
+loadState().catch(() => { $('conn').textContent = 'Offline'; });
+setInterval(() => { if(TOKEN) loadState().catch(() => {}); }, 60000);
+</script>
+</body>
+</html>
