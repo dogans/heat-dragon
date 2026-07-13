@@ -1,0 +1,11 @@
+// Cloudflare Workers config: serves the built dist/ folder as a static site
+// (site at /, ops app at /admin). The build command that assembles dist/ is
+// set in the Cloudflare dashboard: mkdir -p dist/admin && cp -r site/. dist/ && cp -r ops/. dist/admin/
+{
+  "name": "heat-dragon",
+  "compatibility_date": "2026-07-13",
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash"
+  }
+}
