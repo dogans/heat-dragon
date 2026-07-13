@@ -103,7 +103,7 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth}
-  section,#quote,#work,#services,#reviews,#why{scroll-margin-top:84px}
+  section,#quote,#work,#services,#reviews{scroll-margin-top:84px}
   body{
     font-family:var(--body);
     background:var(--paper);
@@ -272,17 +272,6 @@
   .t-item h3{font-family:var(--mono);font-weight:500;font-size:.95rem;letter-spacing:.02em}
   .t-item p{color:var(--muted);font-size:.87rem;line-height:1.5}
 
-  /* ---------- why premium ---------- */
-  .why{background:var(--ink);color:#fff;border-radius:calc(var(--radius)+8px);padding:60px 8px;margin:0 24px}
-  .why .inner{max-width:900px;margin:0 auto;padding:0 24px}
-  .why .eyebrow{color:#7FA8B5}
-  .why .eyebrow::after{background:var(--ink)}
-  .why h2{font-family:var(--disp);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.4rem);letter-spacing:-.022em;margin-bottom:36px}
-  .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-  .why-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:24px 22px}
-  .why-card h3{font-family:var(--disp);font-weight:600;font-size:1.05rem;margin-bottom:8px;color:#fff}
-  .why-card p{font-size:.9rem;color:rgba(255,255,255,.58);line-height:1.6}
-  .why-card .why-num{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;color:var(--copper);text-transform:uppercase;margin-bottom:12px}
 
   /* ---------- services ---------- */
   .svc{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
@@ -426,7 +415,6 @@
     .grid,.svc,.steps,.revs{grid-template-columns:1fr 1fr}
     .builds{grid-template-columns:1fr}
     .trust .wrap{grid-template-columns:1fr 1fr;row-gap:28px}
-    .why-grid{grid-template-columns:1fr 1fr}
     .nav-links a:not(.btn){display:none}
     .nav-phone{display:none}
     .foot .cols{grid-template-columns:1fr 1fr}
@@ -439,12 +427,10 @@
     .hero{padding:52px 0 44px}
     .grid,.svc,.steps,.revs{grid-template-columns:1fr}
     .trust .wrap{grid-template-columns:1fr 1fr}
-    .why-grid{grid-template-columns:1fr}
     .sec-head{flex-direction:column;align-items:flex-start}
     .sec-head .side{text-align:left}
     .row2{grid-template-columns:1fr}
     .quote{padding:44px 0}
-    .why{margin:0 12px;padding:44px 4px}
     .foot .cols{grid-template-columns:1fr}
     .hero-stats{grid-template-columns:1fr 1fr}
   }
@@ -498,7 +484,6 @@
     <div class="nav-links">
       <a href="#work">Work</a>
       <a href="#services">Services</a>
-      <a href="#why">Why us</a>
       <a href="#reviews">Reviews</a>
       <a class="nav-phone" href="tel:+447000000000">07XXX XXXXXX</a>
       <a class="btn small" href="#quote">Get a quote</a>
@@ -628,47 +613,6 @@
   </div>
 
   <!-- WHY PREMIUM -->
-  <section id="why">
-    <div class="why reveal">
-      <div class="inner">
-        <p class="eyebrow">Why Heat Dragon</p>
-        <h2>Premium price. Here's exactly what you get for it.</h2>
-        <div class="why-grid">
-          <div class="why-card">
-            <div class="why-num">01 — Precision</div>
-            <h3>Pipework as a craft</h3>
-            <p>Every run is planned, every joint is clean, every label is legible. The airing cupboard you show guests, not hide.</p>
-          </div>
-          <div class="why-card">
-            <div class="why-num">02 — Transparency</div>
-            <h3>Fixed quotes, no surprises</h3>
-            <p>You get a price in writing before we start. If something unexpected comes up, we talk before we act — never after.</p>
-          </div>
-          <div class="why-card">
-            <div class="why-num">03 — Reliability</div>
-            <h3>We arrive when we said</h3>
-            <p>A deposit holds your slot in the diary. We don't double-book, we don't cancel the morning of, and we finish what we start.</p>
-          </div>
-          <div class="why-card">
-            <div class="why-num">04 — Documentation</div>
-            <h3>Photos of everything</h3>
-            <p>You get photos of the work before it's closed up — useful for insurance, future engineers, and peace of mind.</p>
-          </div>
-          <div class="why-card">
-            <div class="why-num">05 — Compliance</div>
-            <h3>Registered and insured</h3>
-            <p>Gas Safe registration, G3 certification and £2m public liability. Not optional extras — the minimum you should expect.</p>
-          </div>
-          <div class="why-card">
-            <div class="why-num">06 — Aftercare</div>
-            <h3>Renewal reminders included</h3>
-            <p>We track your service and certificate dates and remind you before they lapse. One less thing to remember.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- SERVICES -->
   <section id="services">
     <div class="wrap">
