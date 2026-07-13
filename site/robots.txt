@@ -1,0 +1,20 @@
+# heatdragon.uk — everything public is crawlable; the ops app is not for indexes.
+User-agent: *
+Allow: /
+Disallow: /admin/
+
+# AI assistants and answer engines are welcome. Business summary: /llms.txt
+User-agent: GPTBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-Web
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://heatdragon.uk/sitemap.xml
