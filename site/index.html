@@ -154,11 +154,12 @@
   .nav-links a.btn,.nav-links a.btn:hover{color:#fff}
   .nav-phone{font-family:var(--mono);font-size:.85rem;color:var(--ink);font-weight:500}
   .nav-call{
-    display:none;align-items:center;justify-content:center;
+    display:inline-flex;align-items:center;justify-content:center;
     width:40px;height:40px;border-radius:999px;flex:none;
     border:1.5px solid var(--ink);color:var(--ink);
+    transition:background .15s,color .15s;
   }
-  .nav-call:active{background:var(--ink);color:#fff}
+  .nav-call:hover,.nav-call:active{background:var(--ink);color:#fff}
   .btn{
     display:inline-flex;align-items:center;gap:7px;
     background:var(--flame);color:#fff;
@@ -424,7 +425,6 @@
     .trust .wrap{grid-template-columns:1fr 1fr;row-gap:28px}
     .nav-links a:not(.btn):not(.nav-call){display:none}
     .nav-phone{display:none}
-    .nav-call{display:inline-flex}
     .foot .cols{grid-template-columns:1fr 1fr}
   }
   @media (max-width:600px){
