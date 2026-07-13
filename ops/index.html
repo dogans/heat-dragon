@@ -870,8 +870,32 @@ async function openEnquiry(id){
       <button class="btn line" onclick="passForm(${e.id})" style="border-color:#C9D6D4;color:var(--muted)">
         Pass politely
       </button>
+      <button class="btn line" onclick="confirmDelete(${e.id})" style="border-color:var(--warn);color:var(--warn)">
+        Delete — test or spam
+      </button>
     </div>
     <p class="hint">Photos + postcode mean most jobs get a fixed price without a site visit.</p>`);
+}
+
+function confirmDelete(id){
+  const e = S.enquiries.find(x => x.id === id);
+  openSheetHTML(`
+    <h3>Delete — ${esc(e.name)}?</h3>
+    <p class="pcline">Gone for good, photos included. For a real customer you're turning down, use <b>Pass politely</b> instead — this is for tests and spam.</p>
+    <div class="actions">
+      <button class="btn line" style="border-color:var(--warn);color:var(--warn)" onclick="deleteEnquiry(${e.id})">Delete permanently</button>
+      <button class="btn line" onclick="openEnquiry(${e.id})">Keep it</button>
+    </div>`);
+}
+
+async function deleteEnquiry(id){
+  const e = S.enquiries.find(x => x.id === id);
+  if(e && e.photos.length) await sb.storage.from('photos').remove(e.photos);
+  const { error } = await sb.from('enquiries').delete().eq('id', id);
+  if(error) return fail(error);
+  closeSheet();
+  await loadState();
+  toast('Enquiry deleted');
 }
 
 function quoteForm(id){
