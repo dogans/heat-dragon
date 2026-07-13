@@ -171,6 +171,12 @@
   .btn.ok{background:var(--ok);border-color:var(--ok)}
   .btn.warn{background:var(--warn);border-color:var(--warn)}
   .paid{color:var(--ok);font-family:var(--mono);font-size:.72rem;display:flex;align-items:center;gap:4px}
+  .del-x{
+    width:22px;height:22px;border-radius:50%;flex:none;margin-left:6px;
+    border:1px solid var(--line);background:#fff;color:var(--muted);
+    font-size:.7rem;line-height:1;cursor:pointer;
+  }
+  .del-x:active{border-color:var(--warn);color:var(--warn)}
 
   /* revenue line */
   .rev-line{
@@ -729,7 +735,8 @@ function renderInbox(){
   $('wait-list').innerHTML = S.waitlist.length ? S.waitlist.map(w => `
     <div class="card">
       <div class="row1"><span class="who">${esc(w.name)}</span><span class="pc">${esc(w.postcode)}</span>
-        <a class="ts" href="${waLink(w.phone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">WhatsApp ↗</a></div>
+        <a class="ts" href="${waLink(w.phone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">WhatsApp ↗</a>
+        <button class="del-x" onclick="confirmDelete(${w.id})" aria-label="Delete">✕</button></div>
       <p class="msg" style="margin-top:6px">${esc(w.type)}${w.waitlist_note ? ' · ' + esc(w.waitlist_note) : ''}</p>
     </div>`).join('') : '<div class="empty">Nobody waiting.</div>';
 }
@@ -748,7 +755,7 @@ function renderPipe(){
 
   $('col-quoted').innerHTML = S.quoted.length ? S.quoted.map(q => `
     <div class="card">
-      <div class="row1"><span class="who">${esc(q.name)}</span><span class="ts">${fmtTs(q.quote_sent_at)}</span></div>
+      <div class="row1"><span class="who">${esc(q.name)}</span><span class="ts">${fmtTs(q.quote_sent_at)}</span><button class="del-x" onclick="confirmDelete(${q.id})" aria-label="Delete">✕</button></div>
       <p class="msg" style="margin-top:4px">${esc(q.type)} · ${esc(q.postcode)}</p>
       <div class="chips">
         <span class="chip blue amount">${esc(q.quote_amount)}</span>
@@ -762,7 +769,7 @@ function renderPipe(){
 
   $('col-deposit').innerHTML = S.deposit.length ? S.deposit.map(d => `
     <div class="card">
-      <div class="row1"><span class="who">${esc(d.name)}</span><span class="paid">✓ deposit paid</span></div>
+      <div class="row1"><span class="who">${esc(d.name)}</span><span class="paid">✓ deposit paid</span><button class="del-x" style="margin-left:auto" onclick="confirmDelete(${d.id})" aria-label="Delete">✕</button></div>
       <p class="msg" style="margin-top:4px">${esc(d.type)} · ${esc(d.postcode)}</p>
       <div class="chips">
         <span class="chip blue amount">${esc(d.quote_amount)}</span>
@@ -776,7 +783,7 @@ function renderPipe(){
 
   $('col-sched').innerHTML = S.sched.length ? S.sched.map(s => `
     <div class="card">
-      <div class="row1"><span class="who">${esc(s.name)}</span>${s.quote_amount?`<span class="chip ok" style="margin-left:auto">${esc(s.quote_amount)}</span>`:''}</div>
+      <div class="row1"><span class="who">${esc(s.name)}</span>${s.quote_amount?`<span class="chip ok" style="margin-left:auto">${esc(s.quote_amount)}</span>`:''}<button class="del-x" ${s.quote_amount?'':'style="margin-left:auto"'} onclick="confirmDelete(${s.id})" aria-label="Delete">✕</button></div>
       <p class="msg" style="margin-top:4px">${esc(s.type)}</p>
       <div class="chips"><span class="chip">${s.booking ? esc(`${s.booking.date} ${s.booking.slot} · Van ${s.booking.van}`) : '—'}</span></div>
     </div>`).join('') : '<div class="empty">Nothing scheduled yet.</div>';
@@ -878,19 +885,25 @@ async function openEnquiry(id){
 }
 
 function confirmDelete(id){
-  const e = S.enquiries.find(x => x.id === id);
+  const e = findEnquiry(id);
+  if(!e) return;
   openSheetHTML(`
     <h3>Delete — ${esc(e.name)}?</h3>
-    <p class="pcline">Gone for good, photos included. For a real customer you're turning down, use <b>Pass politely</b> instead — this is for tests and spam.</p>
+    <p class="pcline">${esc(e.type)} · status: ${esc(e.status)}. Gone for good, photos and diary slot included. For a real customer you're turning down, use <b>Pass politely</b> instead — this is for tests and spam.</p>
     <div class="actions">
       <button class="btn line" style="border-color:var(--warn);color:var(--warn)" onclick="deleteEnquiry(${e.id})">Delete permanently</button>
-      <button class="btn line" onclick="openEnquiry(${e.id})">Keep it</button>
+      <button class="btn line" onclick="closeSheet()">Keep it</button>
     </div>`);
 }
 
+function findEnquiry(id){
+  return [...S.enquiries, ...S.waitlist, ...S.quoted, ...S.deposit, ...S.sched].find(x => x.id === id);
+}
+
 async function deleteEnquiry(id){
-  const e = S.enquiries.find(x => x.id === id);
-  if(e && e.photos.length) await sb.storage.from('photos').remove(e.photos);
+  const e = findEnquiry(id);
+  if(e && e.photos && e.photos.length) await sb.storage.from('photos').remove(e.photos);
+  await sb.from('bookings').delete().eq('enquiry_id', id); // frees the diary slot of a scheduled job
   const { error } = await sb.from('enquiries').delete().eq('id', id);
   if(error) return fail(error);
   closeSheet();
