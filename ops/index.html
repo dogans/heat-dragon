@@ -551,12 +551,16 @@ async function loadState(){
   renderAll();
 }
 
+// Sign-in is username-based on the surface; under the hood Supabase Auth
+// wants an email, so bare usernames get @heatdragon.uk appended.
+const LOGIN_DOMAIN = 'heatdragon.uk';
+
 function askLogin(){
   openSheetHTML(`
     <h3>Sign in</h3>
     <p class="pcline">Staff access — your Heat Dragon login.</p>
-    <label for="li-email">Email</label>
-    <input id="li-email" type="email" autocomplete="username" inputmode="email">
+    <label for="li-user">Username</label>
+    <input id="li-user" autocomplete="username" autocapitalize="none" spellcheck="false">
     <label for="li-pass" style="margin-top:12px">Password</label>
     <input id="li-pass" type="password" autocomplete="current-password">
     <div class="actions">
@@ -565,11 +569,12 @@ function askLogin(){
 }
 
 async function doLogin(){
+  const u = ($('li-user').value || '').trim().toLowerCase();
   const { error } = await sb.auth.signInWithPassword({
-    email: ($('li-email').value || '').trim(),
+    email: u.includes('@') ? u : `${u}@${LOGIN_DOMAIN}`,
     password: $('li-pass').value || ''
   });
-  if(error){ toast('Sign-in failed — check email and password'); return; }
+  if(error){ toast('Sign-in failed — check username and password'); return; }
   closeSheet();
   toast('Connected ✓');
   loadState().catch(() => {});
