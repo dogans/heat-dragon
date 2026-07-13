@@ -70,7 +70,12 @@ Deno.serve(async (req) => {
   if (topic) {
     fetch(`https://ntfy.sh/${topic}`, {
       method: 'POST',
-      headers: { 'Title': 'New enquiry - Heat Dragon', 'Priority': 'high', 'Tags': 'wrench' },
+      headers: {
+        'Title': 'New enquiry - Heat Dragon',
+        'Priority': 'high',
+        'Tags': 'wrench',
+        'Click': 'https://heatdragon.uk/admin' // tapping the notification opens the ops app
+      },
       body: `${get('name')} · ${get('postcode').toUpperCase()} · ${get('type')} · wants: ${get('when') || '—'} · ${photoCount} photo${photoCount === 1 ? '' : 's'}`
     }).catch(() => {});
   }
