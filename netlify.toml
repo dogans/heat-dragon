@@ -1,0 +1,4 @@
+# One site, one domain: / is the customer site, /admin is the ops app.
+[build]
+  command = "mkdir -p dist/admin && cp -r site/. dist/ && cp -r ops/. dist/admin/"
+  publish = "dist"
